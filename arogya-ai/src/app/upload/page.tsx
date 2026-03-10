@@ -116,11 +116,11 @@ function buildSummary(text: string): SummaryData {
 
   const dateMatch = text.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/);
   const nameMatch = find(['name :', 'name:', 'patient']);
-  const ageMatch  = find(['age/sex', 'age :', 'age:', 'yr', 'year', '/f', '/m']);
-  const drMatch   = findAll(['dr.', 'dr ', 'doctor', 'mbbs', 'ms ', 'md,', 'bds', 'dgo']);
-  const ccLines   = findAll(['pain', 'swelling', 'fall', 'c/o', 'complaint', 'fever', 'cough', 'doi']);
-  const dxLines   = findAll(['dx', 'diagnosis', 'impression', 'assessment', 'fracture', 'sti ', 'injury', 'infection', 'sprain']);
-  const rxLines   = findAll(['rx', 'tab ', 'cap ', 'syp ', 'mg', 'cream', 'lotion', 'advice', 'advised', 'prescribed']);
+  const ageMatch = find(['age/sex', 'age :', 'age:', 'yr', 'year', '/f', '/m']);
+  const drMatch = findAll(['dr.', 'dr ', 'doctor', 'mbbs', 'ms ', 'md,', 'bds', 'dgo']);
+  const ccLines = findAll(['pain', 'swelling', 'fall', 'c/o', 'complaint', 'fever', 'cough', 'doi']);
+  const dxLines = findAll(['dx', 'diagnosis', 'impression', 'assessment', 'fracture', 'sti ', 'injury', 'infection', 'sprain']);
+  const rxLines = findAll(['rx', 'tab ', 'cap ', 'syp ', 'mg', 'cream', 'lotion', 'advice', 'advised', 'prescribed']);
   const xrayLines = findAll(['x-ray', 'xray', 'x ray', 'mri', 'ct scan', 'usg', 'blood', 'investigation', 'lab', 'test order']);
 
   return {
@@ -142,18 +142,18 @@ function UploadContent() {
   useRouter();
   const profileId = params.get('profileId') || '';
 
-  const [form,       setForm]       = useState({ hospitalName: '', doctorName: '', dateOfVisit: '' });
-  const [file,       setFile]       = useState<File | null>(null);
-  const [preview,    setPreview]    = useState<string | null>(null);
-  const [processed,  setProcessed]  = useState<string | null>(null); // pre-processed canvas image
-  const [status,     setStatus]     = useState<'idle' | 'preprocessing' | 'ocr' | 'editing' | 'done' | 'error'>('idle');
-  const [progress,   setProgress]   = useState(0);
-  const [progressMsg,setProgressMsg]= useState('');
-  const [ocrText,    setOcrText]    = useState('');    // raw OCR
+  const [form, setForm] = useState({ hospitalName: '', doctorName: '', dateOfVisit: '' });
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [processed, setProcessed] = useState<string | null>(null); // pre-processed canvas image
+  const [status, setStatus] = useState<'idle' | 'preprocessing' | 'ocr' | 'editing' | 'done' | 'error'>('idle');
+  const [progress, setProgress] = useState(0);
+  const [progressMsg, setProgressMsg] = useState('');
+  const [ocrText, setOcrText] = useState('');    // raw OCR
   const [editedText, setEditedText] = useState('');   // user-corrected
   const [confidence, setConfidence] = useState(0);
-  const [summary,    setSummary]    = useState<SummaryData | null>(null);
-  const [error,      setError]      = useState('');
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const setFileAndPreview = (f: File) => {
@@ -177,7 +177,7 @@ function UploadContent() {
     try {
       let imageData: string;
       if (file.type.startsWith('image/')) {
-        setProgressMsg('Enhancing image (Otsu binarization + 2× upscale)…');
+        setProgressMsg('Enhancing image…');
         imageData = await preprocessImageForOCR(file);
         setProcessed(imageData);  // show the processed image
       } else {
@@ -187,7 +187,7 @@ function UploadContent() {
       setProgress(25);
 
       setStatus('ocr');
-      setProgressMsg('Running Tesseract LSTM OCR engine…');
+      setProgressMsg('Extracting text…');
 
       const { createWorker, OEM, PSM } = await import('tesseract.js');
 
@@ -247,12 +247,12 @@ function UploadContent() {
     const s = summary;
     type Card = { icon: string; label: string; value: string; accent: string };
     const cards: Card[] = [
-      { icon: '🧑‍⚕️', label: 'Patient Info',     value: s.patientInfo,     accent: '#7c9a7e' },
-      { icon: '👨‍⚕️', label: 'Doctor / Clinic',  value: s.doctor || form.doctorName || form.hospitalName || '—', accent: '#8b7355' },
-      { icon: '🤕', label: 'Chief Complaint',  value: s.chiefComplaint,  accent: '#c4917a' },
-      { icon: '🩺', label: 'Diagnosis',         value: s.diagnosis,       accent: '#7c9a7e' },
-      { icon: '🔬', label: 'Investigations',    value: s.investigations || '—', accent: '#9e9185' },
-      { icon: '💊', label: 'Advice / Rx',       value: s.advice || '—',   accent: '#7c9a7e' },
+      { icon: '🧑‍⚕️', label: 'Patient Info', value: s.patientInfo, accent: '#7c9a7e' },
+      { icon: '👨‍⚕️', label: 'Doctor / Clinic', value: s.doctor || form.doctorName || form.hospitalName || '—', accent: '#8b7355' },
+      { icon: '🤕', label: 'Chief Complaint', value: s.chiefComplaint, accent: '#c4917a' },
+      { icon: '🩺', label: 'Diagnosis', value: s.diagnosis, accent: '#7c9a7e' },
+      { icon: '🔬', label: 'Investigations', value: s.investigations || '—', accent: '#9e9185' },
+      { icon: '💊', label: 'Advice / Rx', value: s.advice || '—', accent: '#7c9a7e' },
     ].filter(c => c.value && c.value !== '—');
 
     return (
@@ -332,7 +332,7 @@ function UploadContent() {
             <p style={{ color: 'var(--zen-muted)', fontSize: 14 }}>OCR extracted the text below. Fix any mistakes, then click Save.</p>
             {confidence > 0 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '4px 14px', borderRadius: 20, background: confidence >= 70 ? 'rgba(124,154,126,0.15)' : 'rgba(196,145,122,0.15)', fontSize: 12, color: confidence >= 70 ? 'var(--zen-sage)' : 'var(--zen-rose)', fontWeight: 500 }}>
-                🔍 Tesseract Confidence: {confidence}%
+                🔍 Confidence Score: {confidence}%
                 {confidence < 70 && ' — please review carefully'}
               </div>
             )}
@@ -389,11 +389,11 @@ function UploadContent() {
 
         <div className="fade-in" style={{ marginBottom: 28 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(124,154,126,0.12)', borderRadius: 20, padding: '5px 14px', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: 'var(--zen-sage)', fontWeight: 600 }}>🔬 Tesseract LSTM OCR — 100% Local, No API</span>
+            <span style={{ fontSize: 12, color: 'var(--zen-sage)', fontWeight: 600 }}>🔬 Smart Health Analysis</span>
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 6 }}>Upload Health Record 📄</h1>
           <p style={{ color: 'var(--zen-muted)', fontSize: 14, lineHeight: 1.6 }}>
-            We pre-process your image with <strong>Otsu binarization</strong> and run <strong>Tesseract LSTM</strong> for best local accuracy. You can review &amp; correct the text before saving.
+            Upload your health document and we will analyze and simplify it for you. You can review &amp; correct the text before saving.
           </p>
         </div>
 
@@ -467,7 +467,7 @@ function UploadContent() {
               onClick={runOCR}
               disabled={!file || !form.dateOfVisit}
               style={{ width: '100%', opacity: (!file || !form.dateOfVisit) ? 0.5 : 1 }}>
-              🔬 Extract Text (Tesseract OCR) →
+              🔬 Analyze Document →
             </button>
           )}
         </div>

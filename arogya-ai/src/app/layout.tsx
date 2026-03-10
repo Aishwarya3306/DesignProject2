@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Chatbot from "@/components/Chatbot";
+import { LanguageProvider } from "@/lib/LanguageContext";
 
 export const metadata: Metadata = {
   title: "ArogyaAI – Your Digital Health Sanctuary",
@@ -13,7 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <LanguageProvider>
+          {children}
+          <Chatbot />
+        </LanguageProvider>
+      </body>
     </html>
   );
 }

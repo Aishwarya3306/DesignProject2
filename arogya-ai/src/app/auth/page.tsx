@@ -1,28 +1,36 @@
 'use client';
 import { useState } from 'react';
-import { registerUser, loginUser, setCurrentUser } from '@/lib/store';
+import { registerUser, loginUser, setCurrentUser, resetPassword } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [form, setForm] = useState({ email: '', password: '', username: '', dob: '' });
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [form, setForm] = useState({ email: '', password: '', username: '' });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const user = registerUser(form.email, form.password, form.username, form.dob);
+        const user = registerUser(form.email, form.password, form.username);
         setCurrentUser(user);
-      } else {
+        router.push('/dashboard');
+      } else if (mode === 'login') {
         const user = loginUser(form.email, form.password);
         setCurrentUser(user);
+        router.push('/dashboard');
+      } else if (mode === 'forgot') {
+        resetPassword(form.email, form.password);
+        setSuccess('Password reset successfully. You can now sign in.');
+        setMode('login');
+        setForm(p => ({ ...p, password: '' })); // clear password input for login
       }
-      router.push('/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally { setLoading(false); }
@@ -52,7 +60,7 @@ export default function AuthPage() {
           {/* Tabs */}
           <div style={{ display: 'flex', background: 'var(--zen-warm)', borderRadius: 12, padding: 4, marginBottom: 28 }}>
             {(['login', 'signup'] as const).map(m => (
-              <button key={m} onClick={() => { setMode(m); setError(''); }}
+              <button key={m} onClick={() => { setMode(m); setError(''); setSuccess(''); }}
                 style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, transition: 'all 0.25s', background: mode === m ? 'var(--zen-white)' : 'transparent', color: mode === m ? 'var(--zen-dark)' : 'var(--zen-muted)', boxShadow: mode === m ? '0 2px 8px rgba(61,51,40,0.1)' : 'none' }}>
                 {m === 'login' ? 'Sign In' : 'Create Account'}
               </button>
@@ -60,6 +68,12 @@ export default function AuthPage() {
           </div>
 
           <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {mode === 'forgot' && (
+              <div style={{ marginBottom: 12, textAlign: 'center' }}>
+                <h3 style={{ fontSize: 18, color: 'var(--zen-dark)', marginBottom: 8 }}>Reset Password</h3>
+                <p style={{ fontSize: 13, color: 'var(--zen-muted)' }}>Enter your email and a new password to reset.</p>
+              </div>
+            )}
             {mode === 'signup' && (
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>Username</label>
@@ -73,24 +87,39 @@ export default function AuthPage() {
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>Password</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>
+                {mode === 'forgot' ? 'New Password' : 'Password'}
+              </label>
               <input className="zen-input" type="password" placeholder="••••••••" required value={form.password}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
             </div>
-            {mode === 'signup' && (
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>Date of Birth <span style={{ color: 'var(--zen-rose)' }}>*</span></label>
-                <input className="zen-input" type="date" required value={form.dob}
-                  onChange={e => setForm(p => ({ ...p, dob: e.target.value }))} />
+            {mode === 'login' && (
+              <div style={{ textAlign: 'right' }}>
+                <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccess(''); setForm(p => ({ ...p, password: '' })); }} style={{ background: 'none', border: 'none', color: 'var(--zen-sage)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
+                  Forgot Password?
+                </button>
               </div>
             )}
+            {mode === 'forgot' && (
+              <div style={{ textAlign: 'center' }}>
+                <button type="button" onClick={() => { setMode('login'); setError(''); setSuccess(''); }} style={{ background: 'none', border: 'none', color: 'var(--zen-muted)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
+                  ← Back to Login
+                </button>
+              </div>
+            )}
+
             {error && (
               <div style={{ background: 'rgba(196,145,122,0.15)', border: '1px solid var(--zen-rose)', borderRadius: 10, padding: '10px 14px', color: 'var(--zen-rose)', fontSize: 13 }}>
                 {error}
               </div>
             )}
+            {success && (
+              <div style={{ background: 'rgba(124,154,126,0.15)', border: '1px solid var(--zen-sage)', borderRadius: 10, padding: '10px 14px', color: 'var(--zen-sage)', fontSize: 13 }}>
+                {success}
+              </div>
+            )}
             <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 4, width: '100%' }}>
-              {loading ? 'Please wait...' : mode === 'login' ? 'Enter your sanctuary →' : 'Begin your journey →'}
+              {loading ? 'Please wait...' : mode === 'login' ? 'Enter your sanctuary →' : mode === 'forgot' ? 'Reset Password' : 'Begin your journey →'}
             </button>
           </form>
         </div>

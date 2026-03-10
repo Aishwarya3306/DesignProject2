@@ -1,0 +1,17 @@
+{
+  "upload_record": "Upload Health Record",
+  "upload_desc": "Upload a document — we'll extract & simplify it for",
+  "family_profiles": "Family Profiles",
+  "recent_records": "Recent Records",
+  "records": "Records",
+  "sanctuary": "Sanctuary",
+  "open_sanctuary": "Open",
+  "vault": "Vault",
+  "profile": "Profile",
+  "sign_out": "Sign Out",
+  "good_morning": "Good Morning",
+  "good_afternoon": "Good Afternoon",
+  "good_evening": "Good Evening",
+  "hello": "Hello",
+  "self": "Self"
+}

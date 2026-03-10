@@ -1,8 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { getCurrentUser, getJournalEntries, addJournalEntry, deleteJournalEntry, setJournalPin, checkJournalPin, hasJournalPin, JournalEntry } from '@/lib/store';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useLanguage } from '@/lib/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const REMINDERS = [
   { icon: '🌳', text: "You don't have to be perfect to be worthy of love and health." },
@@ -29,15 +31,28 @@ const RESULTS = [
 ];
 
 export default function SanctuaryPage() {
+  return (
+    <Suspense fallback={<div>Loading Sanctuary...</div>}>
+      <SanctuaryContent />
+    </Suspense>
+  );
+}
+
+function SanctuaryContent() {
   const router = useRouter();
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
+  const searchParams = useSearchParams();
+  const activeProfileId = searchParams.get('profileId') || user?.id || '';
+  const { t } = useLanguage();
+
   const [tab, setTab] = useState<'reminders' | 'quiz' | 'journal'>('reminders');
-  
+
   // Quiz state
+  const [quizStarted, setQuizStarted] = useState(false);
   const [quizStep, setQuizStep] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [quizResult, setQuizResult] = useState<null | typeof RESULTS[0]>(null);
-  
+
   // Journal state
   const [journalUnlocked, setJournalUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -67,16 +82,16 @@ export default function SanctuaryPage() {
   };
 
   const handleJournalUnlock = () => {
-    if (!user) return;
-    if (!hasJournalPin(user.id)) {
+    if (!user || !activeProfileId) return;
+    if (!hasJournalPin(activeProfileId)) {
       if (newPin.length < 4) { setPinError('PIN must be at least 4 characters'); return; }
       if (newPin !== confirmPin) { setPinError('PINs do not match'); return; }
-      setJournalPin(user.id, newPin);
-      setEntries(getJournalEntries(user.id));
+      setJournalPin(activeProfileId, newPin);
+      setEntries(getJournalEntries(activeProfileId));
       setJournalUnlocked(true);
     } else {
-      if (!checkJournalPin(user.id, pinInput)) { setPinError('Incorrect PIN'); return; }
-      setEntries(getJournalEntries(user.id));
+      if (!checkJournalPin(activeProfileId, pinInput)) { setPinError('Incorrect PIN'); return; }
+      setEntries(getJournalEntries(activeProfileId));
       setJournalUnlocked(true);
     }
     setPinError('');
@@ -84,17 +99,17 @@ export default function SanctuaryPage() {
 
   const handleAddEntry = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !newEntry.title || !newEntry.content) return;
-    addJournalEntry(user.id, newEntry.title, newEntry.content, newEntry.mood);
-    setEntries(getJournalEntries(user.id));
+    if (!user || !activeProfileId || !newEntry.title || !newEntry.content) return;
+    addJournalEntry(activeProfileId, newEntry.title, newEntry.content, newEntry.mood);
+    setEntries(getJournalEntries(activeProfileId));
     setNewEntry({ title: '', content: '', mood: '😊' });
     setShowNewEntry(false);
   };
 
   const handleDeleteEntry = (id: string) => {
-    if (!user) return;
-    deleteJournalEntry(user.id, id);
-    setEntries(getJournalEntries(user.id));
+    if (!user || !activeProfileId) return;
+    deleteJournalEntry(activeProfileId, id);
+    setEntries(getJournalEntries(activeProfileId));
   };
 
   if (!user) return null;
@@ -114,8 +129,9 @@ export default function SanctuaryPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Link href="/dashboard" style={{ color: 'var(--zen-muted)', fontSize: 14, textDecoration: 'none' }}>← Dashboard</Link>
             <span style={{ color: 'var(--zen-sand)' }}>|</span>
-            <span style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700, color: 'var(--zen-dark)' }}>🧘 Sanctuary</span>
+            <span style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700, color: 'var(--zen-dark)' }}>🧘 {t('sanctuary')}</span>
           </div>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -127,9 +143,9 @@ export default function SanctuaryPage() {
 
         {/* Tabs */}
         <div className="glass-card fade-in-delay" style={{ display: 'flex', padding: 6, marginBottom: 28, gap: 4 }}>
-          {([['reminders', '🌿 Reminders'], ['quiz', '✨ Self-Discovery'], ['journal', '📔 Vault Journal']] as const).map(([t, label]) => (
-            <button key={t} onClick={() => setTab(t)}
-              style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, transition: 'all 0.25s', background: tab === t ? 'linear-gradient(135deg, var(--zen-sage), #5a8060)' : 'transparent', color: tab === t ? 'white' : 'var(--zen-muted)', boxShadow: tab === t ? '0 4px 16px rgba(124,154,126,0.3)' : 'none' }}>
+          {([['reminders', '🌿 Reminders'], ['quiz', '✨ Self-Discovery'], ['journal', `📔 ${t('vault')}`]] as const).map(([t_key, label]) => (
+            <button key={t_key} onClick={() => setTab(t_key)}
+              style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, transition: 'all 0.25s', background: tab === t_key ? 'linear-gradient(135deg, var(--zen-sage), #5a8060)' : 'transparent', color: tab === t_key ? 'white' : 'var(--zen-muted)', boxShadow: tab === t_key ? '0 4px 16px rgba(124,154,126,0.3)' : 'none' }}>
               {label}
             </button>
           ))}
@@ -150,12 +166,21 @@ export default function SanctuaryPage() {
         {/* Quiz */}
         {tab === 'quiz' && (
           <div className="fade-in glass-card" style={{ padding: '36px 32px', maxWidth: 580, margin: '0 auto' }}>
-            {quizResult ? (
+            {!quizStarted ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>✨</div>
+                <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 12 }}>Self-Discovery Quiz</h2>
+                <p style={{ fontSize: 16, color: 'var(--zen-muted)', lineHeight: 1.8, marginBottom: 28 }}>Take this short quiz to learn more about your coping styles and mental well-being anchor.</p>
+                <button className="btn-primary" onClick={() => setQuizStarted(true)}>
+                  Open Quiz ➡️
+                </button>
+              </div>
+            ) : quizResult ? (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 64, marginBottom: 16 }}>{quizResult.icon}</div>
                 <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 12 }}>You are: {quizResult.type}</h2>
                 <p style={{ fontSize: 16, color: 'var(--zen-muted)', lineHeight: 1.8, fontStyle: 'italic', marginBottom: 28 }}>{quizResult.desc}</p>
-                <button className="btn-primary" onClick={() => { setQuizStep(0); setQuizAnswers([]); setQuizResult(null); }}>
+                <button className="btn-primary" onClick={() => { setQuizStep(0); setQuizAnswers([]); setQuizResult(null); setQuizStarted(false); }}>
                   Explore Again 🔄
                 </button>
               </div>
@@ -192,13 +217,13 @@ export default function SanctuaryPage() {
               <div className="glass-card" style={{ maxWidth: 440, margin: '0 auto', padding: '40px 36px', textAlign: 'center' }}>
                 <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
                 <h3 style={{ fontSize: 22, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 8 }}>
-                  {hasJournalPin(user.id) ? 'Enter your journal PIN' : 'Create your vault PIN'}
+                  {hasJournalPin(activeProfileId) ? 'Enter your journal PIN' : 'Create your vault PIN'}
                 </h3>
                 <p style={{ color: 'var(--zen-muted)', fontSize: 14, marginBottom: 24 }}>
-                  {hasJournalPin(user.id) ? 'Your journal is protected and private.' : 'Set a PIN to secure your personal journal.'}
+                  {hasJournalPin(activeProfileId) ? 'Your journal is protected and private.' : 'Set a PIN to secure your personal journal.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {!hasJournalPin(user.id) ? (
+                  {!hasJournalPin(activeProfileId) ? (
                     <>
                       <input className="zen-input" type="password" placeholder="Create PIN (min 4 chars)" value={newPin}
                         onChange={e => { setNewPin(e.target.value); setPinError(''); }} style={{ textAlign: 'center', letterSpacing: 6, fontSize: 18 }} />
@@ -211,7 +236,7 @@ export default function SanctuaryPage() {
                   )}
                   {pinError && <p style={{ color: 'var(--zen-rose)', fontSize: 13 }}>{pinError}</p>}
                   <button className="btn-primary" onClick={handleJournalUnlock}>
-                    {hasJournalPin(user.id) ? 'Open Vault 🔓' : 'Create Vault 🔐'}
+                    {hasJournalPin(activeProfileId) ? 'Open Vault 🔓' : 'Create Vault 🔐'}
                   </button>
                 </div>
               </div>

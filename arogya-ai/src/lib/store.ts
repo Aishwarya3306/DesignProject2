@@ -4,7 +4,6 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  dob: string;
   createdAt: string;
 }
 
@@ -14,6 +13,7 @@ export interface Profile {
   name: string;
   relation: string;
   dob: string;
+  preferredLanguage?: string;
 }
 
 export interface HealthRecord {
@@ -37,14 +37,20 @@ export interface JournalEntry {
 }
 
 // ---- USER AUTH ----
-export function registerUser(email: string, password: string, username: string, dob: string): User {
+export function registerUser(email: string, password: string, username: string): User {
   const users: User[] = JSON.parse(localStorage.getItem('arogya_users') || '[]');
   if (users.find(u => u.email === email)) throw new Error('Email already registered');
-  const user: User = { id: crypto.randomUUID(), email, username, dob, createdAt: new Date().toISOString() };
+  const user: User = { id: crypto.randomUUID(), email, username, createdAt: new Date().toISOString() };
   localStorage.setItem(`arogya_pass_${email}`, password);
   users.push(user);
   localStorage.setItem('arogya_users', JSON.stringify(users));
   return user;
+}
+
+export function resetPassword(email: string, newPassword: string) {
+  const users: User[] = JSON.parse(localStorage.getItem('arogya_users') || '[]');
+  if (!users.find(u => u.email === email)) throw new Error('No account found with this email');
+  localStorage.setItem(`arogya_pass_${email}`, newPassword);
 }
 
 export function loginUser(email: string, password: string): User {
@@ -82,12 +88,21 @@ export function getProfiles(userId: string): Profile[] {
   return JSON.parse(localStorage.getItem(`arogya_profiles_${userId}`) || '[]');
 }
 
-export function addProfile(userId: string, name: string, relation: string, dob: string): Profile {
+export function addProfile(userId: string, name: string, relation: string, dob: string, preferredLanguage?: string): Profile {
   const profiles = getProfiles(userId);
-  const p: Profile = { id: crypto.randomUUID(), userId, name, relation, dob };
+  const p: Profile = { id: crypto.randomUUID(), userId, name, relation, dob, preferredLanguage };
   profiles.push(p);
   localStorage.setItem(`arogya_profiles_${userId}`, JSON.stringify(profiles));
   return p;
+}
+
+export function updateProfileLanguage(userId: string, profileId: string, language: string) {
+  const profiles = getProfiles(userId);
+  const profile = profiles.find(p => p.id === profileId);
+  if (profile) {
+    profile.preferredLanguage = language;
+    localStorage.setItem(`arogya_profiles_${userId}`, JSON.stringify(profiles));
+  }
 }
 
 export function deleteProfile(userId: string, profileId: string) {

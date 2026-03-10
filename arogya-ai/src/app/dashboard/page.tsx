@@ -3,6 +3,9 @@ import { getCurrentUser, logoutUser, getProfiles, addProfile, deleteProfile, get
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/LanguageContext';
+import { updateProfileLanguage } from '@/lib/store';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const QUOTES = [
   "Your body is doing extraordinary things for you — right now. 🌿",
@@ -21,7 +24,7 @@ export default function DashboardPage() {
   const [newProfile, setNewProfile] = useState({ name: '', relation: '', dob: '' });
   const [quote] = useState(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   const [records, setRecords] = useState<ReturnType<typeof getRecords>>([]);
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const { t, language, setLanguage } = useLanguage();
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -30,7 +33,7 @@ export default function DashboardPage() {
     const ps = getProfiles(u.id);
     // Auto-create self profile if none
     if (ps.length === 0) {
-      const self = addProfile(u.id, u.username, 'Self', u.dob);
+      const self = addProfile(u.id, u.username, t('self'), '');
       setProfiles([self]);
       setActiveProfile(self);
       setRecords(getRecords(self.id));
@@ -38,12 +41,18 @@ export default function DashboardPage() {
       setProfiles(ps);
       setActiveProfile(ps[0]);
       setRecords(getRecords(ps[0].id));
+      if (ps[0].preferredLanguage) {
+        setLanguage(ps[0].preferredLanguage as any);
+      }
     }
   }, [router]);
 
   const switchProfile = (p: Profile) => {
     setActiveProfile(p);
     setRecords(getRecords(p.id));
+    if (p.preferredLanguage) {
+      setLanguage(p.preferredLanguage as any);
+    }
   };
 
   const handleAddProfile = (e: React.FormEvent) => {
@@ -56,6 +65,9 @@ export default function DashboardPage() {
     setRecords([]);
     setShowAddProfile(false);
     setNewProfile({ name: '', relation: '', dob: '' });
+
+    // Set new profile's default language to the current app default
+    updateProfileLanguage(user.id, p.id, language);
   };
 
   const handleDeleteProfile = (id: string) => {
@@ -65,9 +77,24 @@ export default function DashboardPage() {
     setProfiles(updated);
     setActiveProfile(updated[0]);
     setRecords(getRecords(updated[0].id));
+    if (updated[0].preferredLanguage) {
+      setLanguage(updated[0].preferredLanguage as any);
+    }
   };
 
   const handleSignOut = () => { logoutUser(); router.replace('/auth'); };
+
+  // Persist language changes to the active profile automatically
+  useEffect(() => {
+    if (user && activeProfile) {
+      updateProfileLanguage(user.id, activeProfile.id, language);
+
+      // Update local state without trigering unnecessary re-renders
+      setProfiles(prev => prev.map(p =>
+        p.id === activeProfile.id ? { ...p, preferredLanguage: language } : p
+      ));
+    }
+  }, [language, activeProfile?.id, user?.id]);
 
   if (!user) return null;
 
@@ -89,10 +116,14 @@ export default function DashboardPage() {
             <span style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700, color: 'var(--zen-dark)' }}>ArogyaAI</span>
           </div>
           <nav style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Link href="/sanctuary" style={{ padding: '7px 16px', borderRadius: 10, background: 'transparent', color: 'var(--zen-brown)', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s', border: '1.5px solid transparent' }}
+            <LanguageSwitcher />
+            <Link href={`/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}`} style={{ padding: '7px 16px', borderRadius: 10, background: 'transparent', color: 'var(--zen-brown)', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s', border: '1.5px solid transparent' }}
               onMouseOver={e => (e.currentTarget.style.background = 'var(--zen-warm)')}
-              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>🧘 Sanctuary</Link>
-            <button onClick={handleSignOut} className="btn-ghost" style={{ padding: '7px 16px', fontSize: 14 }}>Sign Out</button>
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>🧘 {t('sanctuary')}</Link>
+            <Link href="/profile" style={{ padding: '7px 16px', borderRadius: 10, background: 'transparent', color: 'var(--zen-brown)', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s', border: '1.5px solid transparent' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'var(--zen-warm)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>👤 {t('profile')}</Link>
+            <button onClick={handleSignOut} className="btn-ghost" style={{ padding: '7px 16px', fontSize: 14 }}>{t('sign_out')}</button>
           </nav>
         </div>
       </header>
@@ -101,7 +132,13 @@ export default function DashboardPage() {
         {/* Greeting */}
         <div className="fade-in" style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 4 }}>
-            Namaste, {user.username} 🙏
+            {(() => {
+              const hour = new Date().getHours();
+              if (hour >= 5 && hour < 12) return `${t('good_morning')}, ${user.username} ☀️`;
+              if (hour >= 12 && hour < 17) return `${t('good_afternoon')}, ${user.username} 🌿`;
+              if (hour >= 17 && hour < 22) return `${t('good_evening')}, ${user.username} 🌙`;
+              return `${t('hello')}, ${user.username}`;
+            })()}
           </h1>
           <p style={{ color: 'var(--zen-muted)', fontSize: 15 }}>
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -118,7 +155,7 @@ export default function DashboardPage() {
           <div className="fade-in">
             <div className="glass-card" style={{ padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--zen-dark)' }}>Family Profiles</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--zen-dark)' }}>{t('family_profiles')}</h3>
                 <button onClick={() => setShowAddProfile(true)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--zen-sage)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
               </div>
               {profiles.map(p => (
@@ -150,16 +187,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Account */}
-            <div className="glass-card" style={{ padding: 16, marginTop: 16 }}>
-              <h4 style={{ fontSize: 13, fontWeight: 600, color: 'var(--zen-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</h4>
-              <div style={{ fontSize: 13, color: 'var(--zen-dark)', marginBottom: 8 }}>
-                <span style={{ color: 'var(--zen-muted)' }}>Email: </span>{user.email}
-              </div>
-              <button onClick={() => setShowDeleteAccount(true)} style={{ background: 'none', border: 'none', color: 'var(--zen-rose)', fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-                Delete Account
-              </button>
-            </div>
+            {/* Account section removed per requirements */}
           </div>
 
           {/* Main content */}
@@ -172,8 +200,8 @@ export default function DashboardPage() {
                 onMouseOut={e => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(124,154,126,0.3)'; }}>
                 <div style={{ width: 56, height: 56, background: 'rgba(255,255,255,0.25)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>📄</div>
                 <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 700, color: 'white', marginBottom: 4 }}>Upload Health Record</h2>
-                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>Upload a document — we'll extract & simplify it for {activeProfile?.name || 'you'}</p>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, color: 'white', marginBottom: 4 }}>{t('upload_record')}</h2>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>{t('upload_desc')} {activeProfile?.name || 'you'}</p>
                 </div>
                 <div style={{ marginLeft: 'auto', fontSize: 28, color: 'rgba(255,255,255,0.7)' }}>→</div>
               </div>
@@ -181,9 +209,9 @@ export default function DashboardPage() {
 
             {/* Stats row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-              {[{ icon: '📋', label: 'Records', value: records.length },
-                { icon: '🧘', label: 'Sanctuary', value: 'Open', link: '/sanctuary' },
-                { icon: '📔', label: 'Journal', value: 'Vault', link: '/sanctuary#journal' }].map(s => (
+              {[{ icon: '📋', label: t('records'), value: records.length },
+              { icon: '🧘', label: t('sanctuary'), value: t('open_sanctuary'), link: `/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}` },
+              { icon: '📔', label: 'Journal', value: t('vault'), link: `/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}#journal` }].map(s => (
                 <Link key={s.label} href={s.link || '#'} style={{ textDecoration: 'none' }}>
                   <div className="glass-card" style={{ padding: '20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
                     onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
@@ -199,7 +227,7 @@ export default function DashboardPage() {
             {/* Records list */}
             <div className="glass-card" style={{ padding: 24 }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 16 }}>
-                Recent Records — {activeProfile?.name}
+                {t('recent_records')} — {activeProfile?.name}
               </h3>
               {records.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--zen-muted)' }}>
@@ -222,22 +250,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Delete Account Modal */}
-        {showDeleteAccount && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(61,51,40,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
-            <div className="glass-card" style={{ padding: 32, maxWidth: 380, width: '100%', margin: 16 }}>
-              <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: 'var(--zen-dark)' }}>Delete Account?</h3>
-              <p style={{ color: 'var(--zen-muted)', marginBottom: 24, fontSize: 14, lineHeight: 1.6 }}>This will permanently erase all your health records, journals, and profiles. This cannot be undone.</p>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowDeleteAccount(false)}>Cancel</button>
-                <button style={{ flex: 1, background: 'var(--zen-rose)', color: 'white', border: 'none', borderRadius: 14, padding: '12px 0', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500 }}
-                  onClick={() => { const { deleteAccount } = require('@/lib/store'); deleteAccount(user.id, user.email); router.replace('/auth'); }}>
-                  Delete Forever
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Delete Account Modal Removed */}
       </main>
     </div>
   );

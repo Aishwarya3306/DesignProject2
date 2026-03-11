@@ -46,8 +46,9 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      // Reverting to simple relative path as absolute paths can cause CORS or host detection issues on Vercel
-      const res = await fetch('/api/chat', {
+      // Use absolute URL dynamically generated to ensure Vercel edge routes don't fail parsing the host
+      const host = typeof window !== 'undefined' ? window.location.origin : '';
+      const res = await fetch(`${host}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export default function Chatbot() {
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (error: any) {
-      console.error(error);
+      console.error("Fetch Error: ", error);
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',

@@ -46,8 +46,8 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      // Connect to the new FastAPI backend endpoint
-      const res = await fetch('http://localhost:8000/chat', {
+      // Connect to the new internal Next.js API endpoint
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

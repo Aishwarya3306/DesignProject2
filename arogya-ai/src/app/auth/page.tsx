@@ -1,132 +1,114 @@
 'use client';
 import { useState } from 'react';
-import { registerUser, loginUser, setCurrentUser, resetPassword } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import { loginUser, registerUser, setCurrentUser } from '@/lib/store';
 
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [form, setForm] = useState({ email: '', password: '', username: '' });
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handle = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-    setLoading(true);
     try {
-      if (mode === 'signup') {
-        const user = registerUser(form.email, form.password, form.username);
+      if (isLogin) {
+        const user = loginUser(email, password);
         setCurrentUser(user);
-        router.push('/dashboard');
-      } else if (mode === 'login') {
-        const user = loginUser(form.email, form.password);
+        router.replace('/dashboard');
+      } else {
+        const user = registerUser(email, password, username || email.split('@')[0]);
         setCurrentUser(user);
-        router.push('/dashboard');
-      } else if (mode === 'forgot') {
-        resetPassword(form.email, form.password);
-        setSuccess('Password reset successfully. You can now sign in.');
-        setMode('login');
-        setForm(p => ({ ...p, password: '' })); // clear password input for login
+        router.replace('/dashboard');
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally { setLoading(false); }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden' }}>
-      {/* Zen bg orbs */}
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      {/* Zen background */}
       <div className="zen-bg">
-        <div className="zen-orb" style={{ width: 400, height: 400, background: 'var(--zen-sage-light)', top: '-10%', left: '-5%', animationDuration: '14s' }} />
-        <div className="zen-orb" style={{ width: 300, height: 300, background: 'var(--zen-rose)', bottom: '-5%', right: '5%', animationDuration: '10s', animationDelay: '3s' }} />
-        <div className="zen-orb" style={{ width: 200, height: 200, background: 'var(--zen-sand)', top: '40%', right: '20%', animationDuration: '16s', animationDelay: '6s' }} />
+        <div className="zen-orb" style={{ width: 400, height: 400, background: 'var(--zen-sage-light)', top: '-5%', right: '-5%', opacity: 0.3, animationDuration: '15s' }} />
+        <div className="zen-orb" style={{ width: 300, height: 300, background: 'var(--zen-sand)', bottom: '-10%', left: '-5%', opacity: 0.25, animationDuration: '12s', animationDelay: '2s' }} />
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 440 }}>
-        {/* Logo */}
-        <div className="fade-in" style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, background: 'linear-gradient(135deg, var(--zen-sage), #5a8060)', borderRadius: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, boxShadow: '0 8px 24px rgba(124,154,126,0.35)' }}>
-            <span style={{ fontSize: 28 }}>🌿</span>
+      <div className="glass-card fade-in" style={{ width: '100%', maxWidth: 440, padding: 40, zIndex: 1, position: 'relative' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, var(--zen-sage), #5a8060)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <span style={{ fontSize: 24 }}>🌿</span>
           </div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: 'var(--zen-dark)' }}>ArogyaAI</h1>
-          <p style={{ color: 'var(--zen-muted)', fontSize: 15, marginTop: 6 }}>Your digital health sanctuary</p>
+          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 8 }}>
+            ArogyaAI
+          </h1>
+          <p style={{ color: 'var(--zen-muted)', fontSize: 15 }}>
+            {isLogin ? 'Welcome back to your sanctuary.' : 'Begin your healing journey.'}
+          </p>
         </div>
 
-        {/* Card */}
-        <div className="glass-card fade-in-delay" style={{ padding: '36px 32px' }}>
-          {/* Tabs */}
-          <div style={{ display: 'flex', background: 'var(--zen-warm)', borderRadius: 12, padding: 4, marginBottom: 28 }}>
-            {(['login', 'signup'] as const).map(m => (
-              <button key={m} onClick={() => { setMode(m); setError(''); setSuccess(''); }}
-                style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 500, transition: 'all 0.25s', background: mode === m ? 'var(--zen-white)' : 'transparent', color: mode === m ? 'var(--zen-dark)' : 'var(--zen-muted)', boxShadow: mode === m ? '0 2px 8px rgba(61,51,40,0.1)' : 'none' }}>
-                {m === 'login' ? 'Sign In' : 'Create Account'}
-              </button>
-            ))}
+        {error && (
+          <div style={{ padding: '12px 16px', background: '#ffebee', color: '#c62828', borderRadius: 8, fontSize: 14, marginBottom: 20, textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {!isLogin && (
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 6 }}>Name</label>
+              <input 
+                className="zen-input" 
+                placeholder="Your name" 
+                value={username} 
+                onChange={e => setUsername(e.target.value)}
+                required={!isLogin}
+              />
+            </div>
+          )}
+          
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 6 }}>Email</label>
+            <input 
+              className="zen-input" 
+              type="email" 
+              placeholder="you@example.com" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)}
+              required 
+            />
+          </div>
+          
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 6 }}>Password</label>
+            <input 
+              className="zen-input" 
+              type="password" 
+              placeholder="••••••••" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)}
+              required 
+            />
           </div>
 
-          <form onSubmit={handle} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {mode === 'forgot' && (
-              <div style={{ marginBottom: 12, textAlign: 'center' }}>
-                <h3 style={{ fontSize: 18, color: 'var(--zen-dark)', marginBottom: 8 }}>Reset Password</h3>
-                <p style={{ fontSize: 13, color: 'var(--zen-muted)' }}>Enter your email and a new password to reset.</p>
-              </div>
-            )}
-            {mode === 'signup' && (
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>Username</label>
-                <input className="zen-input" type="text" placeholder="your_name" required value={form.username}
-                  onChange={e => setForm(p => ({ ...p, username: e.target.value }))} />
-              </div>
-            )}
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>Email</label>
-              <input className="zen-input" type="email" placeholder="hello@example.com" required value={form.email}
-                onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--zen-brown)', marginBottom: 6 }}>
-                {mode === 'forgot' ? 'New Password' : 'Password'}
-              </label>
-              <input className="zen-input" type="password" placeholder="••••••••" required value={form.password}
-                onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
-            </div>
-            {mode === 'login' && (
-              <div style={{ textAlign: 'right' }}>
-                <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccess(''); setForm(p => ({ ...p, password: '' })); }} style={{ background: 'none', border: 'none', color: 'var(--zen-sage)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
-                  Forgot Password?
-                </button>
-              </div>
-            )}
-            {mode === 'forgot' && (
-              <div style={{ textAlign: 'center' }}>
-                <button type="button" onClick={() => { setMode('login'); setError(''); setSuccess(''); }} style={{ background: 'none', border: 'none', color: 'var(--zen-muted)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
-                  ← Back to Login
-                </button>
-              </div>
-            )}
+          <button type="submit" className="btn-primary" style={{ marginTop: 8, padding: '12px 0', fontSize: 15 }}>
+            {isLogin ? 'Sign In' : 'Create Account'}
+          </button>
+        </form>
 
-            {error && (
-              <div style={{ background: 'rgba(196,145,122,0.15)', border: '1px solid var(--zen-rose)', borderRadius: 10, padding: '10px 14px', color: 'var(--zen-rose)', fontSize: 13 }}>
-                {error}
-              </div>
-            )}
-            {success && (
-              <div style={{ background: 'rgba(124,154,126,0.15)', border: '1px solid var(--zen-sage)', borderRadius: 10, padding: '10px 14px', color: 'var(--zen-sage)', fontSize: 13 }}>
-                {success}
-              </div>
-            )}
-            <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 4, width: '100%' }}>
-              {loading ? 'Please wait...' : mode === 'login' ? 'Enter your sanctuary →' : mode === 'forgot' ? 'Reset Password' : 'Begin your journey →'}
-            </button>
-          </form>
+        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: 'var(--zen-muted)' }}>
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <button 
+            type="button" 
+            onClick={() => { setIsLogin(!isLogin); setError(''); }} 
+            style={{ background: 'none', border: 'none', color: 'var(--zen-sage)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+          >
+            {isLogin ? 'Sign up' : 'Sign in'}
+          </button>
         </div>
-
-        <p className="fade-in-delay-2" style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--zen-muted)' }}>
-          Your health data stays private. Always. 🌸
-        </p>
       </div>
     </div>
   );

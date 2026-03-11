@@ -46,8 +46,10 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      // Connect to the new internal Next.js API endpoint
-      const res = await fetch('/api/chat', {
+      // Use an absolute URL for Vercel deployment reliability
+      const apiUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/chat` : '/api/chat';
+      
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

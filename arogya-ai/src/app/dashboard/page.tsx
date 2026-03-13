@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [showAddProfile, setShowAddProfile] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const [newProfile, setNewProfile] = useState({ name: '', relation: '', dob: '' });
   const [quote] = useState(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   const [records, setRecords] = useState<ReturnType<typeof getRecords>>([]);
@@ -210,19 +211,24 @@ export default function DashboardPage() {
 
             {/* Stats row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-              {[{ icon: '📋', label: t('records'), value: records.length },
-              { icon: '🧘', label: t('sanctuary'), value: t('open_sanctuary'), link: `/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}` },
-              { icon: '📔', label: 'Journal', value: t('vault'), link: `/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}#journal` }].map(s => (
-                <Link key={s.label} href={s.link || '#'} style={{ textDecoration: 'none' }}>
-                  <div className="glass-card" style={{ padding: '20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+              {[{ id: 'records', icon: '📋', label: t('records'), value: records.length, onClick: () => setShowGallery(true) },
+              { id: 'sanctuary', icon: '🧘', label: t('sanctuary'), value: t('open_sanctuary'), link: `/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}` },
+              { id: 'vault', icon: '📔', label: 'Journal', value: t('vault'), link: `/sanctuary${activeProfile ? `?profileId=${activeProfile.id}` : ''}#journal` }].map(s => {
+                const CardContent = (
+                  <div className="glass-card" style={{ padding: '20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', height: '100%' }}
                     onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
                     onMouseOut={e => (e.currentTarget.style.transform = 'none')}>
                     <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
                     <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 2 }}>{s.value}</div>
                     <div style={{ fontSize: 12, color: 'var(--zen-muted)', fontWeight: 500 }}>{s.label}</div>
                   </div>
-                </Link>
-              ))}
+                );
+                return s.link ? (
+                  <Link key={s.id} href={s.link} style={{ textDecoration: 'none' }}>{CardContent}</Link>
+                ) : (
+                  <div key={s.id} onClick={s.onClick} style={{ textDecoration: 'none' }}>{CardContent}</div>
+                );
+              })}
             </div>
 
             {/* Records list */}
@@ -261,7 +267,7 @@ export default function DashboardPage() {
 
       {/* Document Viewer Modal */}
       {selectedRecord && selectedRecord.fileData && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: 24 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: 24 }}>
           <div style={{ background: 'var(--zen-warm)', borderRadius: 20, width: '100%', maxWidth: 900, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--zen-sand)' }}>
               <div>
@@ -275,6 +281,50 @@ export default function DashboardPage() {
                 <iframe src={selectedRecord.fileData} style={{ width: '100%', height: '70vh', border: 'none', borderRadius: 8 }} />
               ) : (
                 <img src={selectedRecord.fileData} alt="Document" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Records Gallery Modal */}
+      {showGallery && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245,240,232,0.95)', backdropFilter: 'blur(8px)', padding: 32 }}>
+          <div style={{ width: '100%', maxWidth: 1100, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--zen-dark)' }}>All Records</h2>
+                <p style={{ fontSize: 15, color: 'var(--zen-muted)' }}>{activeProfile?.name}'s document history</p>
+              </div>
+              <button onClick={() => setShowGallery(false)} style={{ width: 44, height: 44, borderRadius: '50%', background: 'white', border: '1px solid var(--zen-sand)', fontSize: 24, color: 'var(--zen-dark)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>×</button>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8 }}>
+              {records.filter(r => r.fileData).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--zen-muted)' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🌱</div>
+                  <p style={{ fontSize: 16 }}>No documents available in the gallery yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+                  {[...records].filter(r => r.fileData).reverse().map(r => (
+                    <div key={r.id} onClick={() => setSelectedRecord(r)} style={{ background: 'white', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--zen-sand)', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}
+                      onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-4px)')}
+                      onMouseOut={e => (e.currentTarget.style.transform = 'none')}>
+                      <div style={{ height: 200, background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--zen-sand)' }}>
+                        {r.fileData?.startsWith('data:application/pdf') ? (
+                          <div style={{ fontSize: 48 }}>📄</div>
+                        ) : (
+                          <img src={r.fileData} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+                      </div>
+                      <div style={{ padding: 16 }}>
+                        <h4 style={{ fontSize: 15, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.hospitalName || 'Health Visit'}</h4>
+                        <p style={{ fontSize: 13, color: 'var(--zen-muted)' }}>{new Date(r.dateOfVisit).toLocaleDateString('en-IN')}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

@@ -376,9 +376,14 @@ export default function DashboardPage() {
                           <img src={r.fileData} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}
                       </div>
-                      <div style={{ padding: 16 }}>
-                        <h4 style={{ fontSize: 15, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.hospitalName || 'Health Visit'}</h4>
-                        <p style={{ fontSize: 13, color: 'var(--zen-muted)' }}>{new Date(r.dateOfVisit).toLocaleDateString('en-IN')}</p>
+                      <div style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ minWidth: 0, paddingRight: 8 }}>
+                          <h4 style={{ fontSize: 15, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.hospitalName || 'Health Visit'}</h4>
+                          <p style={{ fontSize: 13, color: 'var(--zen-muted)' }}>{new Date(r.dateOfVisit).toLocaleDateString('en-IN')}</p>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(r.id); }} style={{ background: 'rgba(196,145,122,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--zen-rose)', fontSize: 13, transition: 'all 0.2s', flexShrink: 0 }}
+                          onMouseOver={e => (e.currentTarget.style.background = 'rgba(196,145,122,0.2)')}
+                          onMouseOut={e => (e.currentTarget.style.background = 'rgba(196,145,122,0.1)')}>🗑️</button>
                       </div>
                     </div>
                   ))}

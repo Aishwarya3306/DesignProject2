@@ -1,0 +1,17 @@
+Operating System: Windows ​
+
+Frontend Framework: Next.js with React​
+
+Programming Languages: TypeScript, JavaScript, Python​
+
+Backend Framework: FastAPI​
+
+Database : localStorage for MVP / SQLAlchemy for production​
+
+AI Integration: Groq API with Llama3 model​
+
+OCR Engine: Tesseract.js​
+
+Development Tools: Node.js, npm, VS Code​
+
+Web Browser: Google Chrome ​

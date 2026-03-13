@@ -24,6 +24,7 @@ export interface HealthRecord {
   dateOfVisit: string; // mandatory
   rawOcrText: string;
   summary: string;
+  fileData?: string;
   uploadedAt: string;
 }
 

@@ -154,6 +154,7 @@ function UploadContent() {
   const [confidence, setConfidence] = useState(0);
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [error, setError] = useState('');
+  const [originalFileBase64, setOriginalFileBase64] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const setFileAndPreview = (f: File) => {
@@ -163,6 +164,7 @@ function UploadContent() {
     setOcrText('');
     setEditedText('');
     setProcessed(null);
+    setOriginalFileBase64(null);
     if (f.type.startsWith('image/')) setPreview(URL.createObjectURL(f));
     else setPreview(null);
   };
@@ -178,11 +180,16 @@ function UploadContent() {
       let imageData: string;
       if (file.type.startsWith('image/')) {
         setProgressMsg('Enhancing image…');
+        // Store original unmodified base64 before upscaling/binarizing
+        const base64 = await fileToDataUrl(file);
+        setOriginalFileBase64(base64);
+
         imageData = await preprocessImageForOCR(file);
         setProcessed(imageData);  // show the processed image
       } else {
         setProgressMsg('Reading PDF…');
         imageData = await fileToDataUrl(file);
+        setOriginalFileBase64(imageData);
       }
       setProgress(25);
 
@@ -238,6 +245,7 @@ function UploadContent() {
         .filter(([k]) => k !== 'rawText')
         .map(([k, v]) => `${k}: ${v}`)
         .join('\n'),
+      fileData: originalFileBase64 || undefined,
     });
     setStatus('done');
   };

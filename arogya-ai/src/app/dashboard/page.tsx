@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [newProfile, setNewProfile] = useState({ name: '', relation: '', dob: '' });
   const [quote] = useState(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   const [records, setRecords] = useState<ReturnType<typeof getRecords>>([]);
+  const [selectedRecord, setSelectedRecord] = useState<ReturnType<typeof getRecords>[0] | null>(null);
   const { t, language, setLanguage } = useLanguage();
 
   useEffect(() => {
@@ -235,7 +236,12 @@ export default function DashboardPage() {
                   <p style={{ fontSize: 15 }}>No records yet. Upload your first document!</p>
                 </div>
               ) : [...records].reverse().map(r => (
-                <div key={r.id} style={{ padding: '16px', borderRadius: 14, background: 'var(--zen-warm)', marginBottom: 12, border: '1px solid var(--zen-sand)' }}>
+                <div key={r.id}
+                  onClick={() => r.fileData && setSelectedRecord(r)}
+                  style={{ padding: '16px', borderRadius: 14, background: 'var(--zen-warm)', marginBottom: 12, border: '1px solid var(--zen-sand)', cursor: r.fileData ? 'pointer' : 'default', transition: 'transform 0.2s', ... (r.fileData ? { ':hover': { transform: 'translateY(-2px)' } } : {}) }}
+                  onMouseOver={e => { if (r.fileData) (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)' }}
+                  onMouseOut={e => { (e.currentTarget as HTMLDivElement).style.transform = 'none' }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div>
                       <span style={{ fontWeight: 600, color: 'var(--zen-dark)', fontSize: 14 }}>{r.hospitalName || 'Health Visit'}</span>
@@ -252,6 +258,28 @@ export default function DashboardPage() {
 
         {/* Delete Account Modal Removed */}
       </main>
+
+      {/* Document Viewer Modal */}
+      {selectedRecord && selectedRecord.fileData && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: 24 }}>
+          <div style={{ background: 'var(--zen-warm)', borderRadius: 20, width: '100%', maxWidth: 900, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--zen-sand)' }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: 'var(--zen-dark)' }}>{selectedRecord.hospitalName || 'Health Document'}</h3>
+                <p style={{ fontSize: 13, color: 'var(--zen-muted)' }}>{new Date(selectedRecord.dateOfVisit).toLocaleDateString('en-IN')} {selectedRecord.doctorName ? `· Dr. ${selectedRecord.doctorName}` : ''}</p>
+              </div>
+              <button onClick={() => setSelectedRecord(null)} style={{ background: 'none', border: 'none', fontSize: 28, color: 'var(--zen-muted)', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', background: '#eaf0ec', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+              {selectedRecord.fileData.startsWith('data:application/pdf') ? (
+                <iframe src={selectedRecord.fileData} style={{ width: '100%', height: '70vh', border: 'none', borderRadius: 8 }} />
+              ) : (
+                <img src={selectedRecord.fileData} alt="Document" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

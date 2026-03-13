@@ -1,0 +1,16 @@
+# Setup Instructions
+## Live Deployment
+The project is deployed on Vercel and can be accessed here:
+https://design-project2.vercel.app/
+
+## Running the Project Locally
+1. Clone the repository
+git clone https://github.com/Aishwarya3306/DesignProject2.git
+2. Navigate to the project folder
+cd DesignProject2/arogya-ai
+3. Install dependencies
+npm install
+4. Run the project
+npx next dev
+5. Open in browser
+http://localhost:3000

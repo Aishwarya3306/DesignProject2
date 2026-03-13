@@ -59,6 +59,7 @@ function SanctuaryContent() {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [isResettingPin, setIsResettingPin] = useState(false);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [newEntry, setNewEntry] = useState({ title: '', content: '', mood: '😊' });
   const [showNewEntry, setShowNewEntry] = useState(false);
@@ -83,18 +84,22 @@ function SanctuaryContent() {
 
   const handleJournalUnlock = () => {
     if (!user || !activeProfileId) return;
-    if (!hasJournalPin(activeProfileId)) {
+    if (!hasJournalPin(activeProfileId) || isResettingPin) {
       if (newPin.length < 4) { setPinError('PIN must be at least 4 characters'); return; }
       if (newPin !== confirmPin) { setPinError('PINs do not match'); return; }
       setJournalPin(activeProfileId, newPin);
       setEntries(getJournalEntries(activeProfileId));
       setJournalUnlocked(true);
+      setIsResettingPin(false);
     } else {
       if (!checkJournalPin(activeProfileId, pinInput)) { setPinError('Incorrect PIN'); return; }
       setEntries(getJournalEntries(activeProfileId));
       setJournalUnlocked(true);
     }
     setPinError('');
+    setNewPin('');
+    setConfirmPin('');
+    setPinInput('');
   };
 
   const handleAddEntry = (e: React.FormEvent) => {
@@ -217,13 +222,13 @@ function SanctuaryContent() {
               <div className="glass-card" style={{ maxWidth: 440, margin: '0 auto', padding: '40px 36px', textAlign: 'center' }}>
                 <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
                 <h3 style={{ fontSize: 22, fontWeight: 700, color: 'var(--zen-dark)', marginBottom: 8 }}>
-                  {hasJournalPin(activeProfileId) ? 'Enter your journal PIN' : 'Create your vault PIN'}
+                  {hasJournalPin(activeProfileId) && !isResettingPin ? 'Enter your journal PIN' : 'Create your vault PIN'}
                 </h3>
                 <p style={{ color: 'var(--zen-muted)', fontSize: 14, marginBottom: 24 }}>
-                  {hasJournalPin(activeProfileId) ? 'Your journal is protected and private.' : 'Set a PIN to secure your personal journal.'}
+                  {hasJournalPin(activeProfileId) && !isResettingPin ? 'Your journal is protected and private.' : 'Set a PIN to secure your personal journal.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {!hasJournalPin(activeProfileId) ? (
+                  {(!hasJournalPin(activeProfileId) || isResettingPin) ? (
                     <>
                       <input className="zen-input" type="password" placeholder="Create PIN (min 4 chars)" value={newPin}
                         onChange={e => { setNewPin(e.target.value); setPinError(''); }} style={{ textAlign: 'center', letterSpacing: 6, fontSize: 18 }} />
@@ -236,8 +241,21 @@ function SanctuaryContent() {
                   )}
                   {pinError && <p style={{ color: 'var(--zen-rose)', fontSize: 13 }}>{pinError}</p>}
                   <button className="btn-primary" onClick={handleJournalUnlock}>
-                    {hasJournalPin(activeProfileId) ? 'Open Vault 🔓' : 'Create Vault 🔐'}
+                    {hasJournalPin(activeProfileId) && !isResettingPin ? 'Open Vault 🔓' : 'Create Vault 🔐'}
                   </button>
+                  {hasJournalPin(activeProfileId) && (
+                    <div style={{ marginTop: 8 }}>
+                      {isResettingPin ? (
+                        <button onClick={() => { setIsResettingPin(false); setPinError(''); }} style={{ background: 'none', border: 'none', color: 'var(--zen-muted)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
+                          Cancel Reset
+                        </button>
+                      ) : (
+                        <button onClick={() => { setIsResettingPin(true); setPinError(''); }} style={{ background: 'none', border: 'none', color: 'var(--zen-muted)', fontSize: 13, cursor: 'pointer' }}>
+                          Forgot your PIN?
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

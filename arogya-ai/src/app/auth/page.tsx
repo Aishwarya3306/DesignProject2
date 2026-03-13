@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser, registerUser, setCurrentUser } from '@/lib/store';
+import { loginUser, registerUser, setCurrentUser, resetPassword } from '@/lib/store';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -10,12 +10,20 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     try {
-      if (isLogin) {
+      if (isResettingPassword) {
+        resetPassword(email, password);
+        setSuccessMsg('Password successfully reset! Please sign in.');
+        setIsResettingPassword(false);
+        setPassword('');
+      } else if (isLogin) {
         const user = loginUser(email, password);
         setCurrentUser(user);
         router.replace('/dashboard');
@@ -46,7 +54,7 @@ export default function AuthPage() {
             ArogyaAI
           </h1>
           <p style={{ color: 'var(--zen-muted)', fontSize: 15 }}>
-            {isLogin ? 'Welcome back to your sanctuary.' : 'Begin your healing journey.'}
+            {isResettingPassword ? 'Reset your password.' : isLogin ? 'Welcome back to your sanctuary.' : 'Begin your healing journey.'}
           </p>
         </div>
 
@@ -56,8 +64,14 @@ export default function AuthPage() {
           </div>
         )}
 
+        {successMsg && (
+          <div style={{ padding: '12px 16px', background: '#edf7ed', color: '#1e4620', borderRadius: 8, fontSize: 14, marginBottom: 20, textAlign: 'center' }}>
+            {successMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {!isLogin && (
+          {!isLogin && !isResettingPassword && (
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 6 }}>Name</label>
               <input 
@@ -65,7 +79,7 @@ export default function AuthPage() {
                 placeholder="Your name" 
                 value={username} 
                 onChange={e => setUsername(e.target.value)}
-                required={!isLogin}
+                required={!isLogin && !isResettingPassword}
               />
             </div>
           )}
@@ -83,7 +97,12 @@ export default function AuthPage() {
           </div>
           
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--zen-dark)', marginBottom: 6 }}>Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--zen-dark)' }}>{isResettingPassword ? 'New Password' : 'Password'}</label>
+               {isLogin && !isResettingPassword && (
+                 <button type="button" onClick={() => { setIsResettingPassword(true); setError(''); setSuccessMsg(''); }} style={{ background: 'none', border: 'none', color: 'var(--zen-sage)', fontSize: 12, cursor: 'pointer', padding: 0 }}>Forgot password?</button>
+               )}
+            </div>
             <input 
               className="zen-input" 
               type="password" 
@@ -95,19 +114,27 @@ export default function AuthPage() {
           </div>
 
           <button type="submit" className="btn-primary" style={{ marginTop: 8, padding: '12px 0', fontSize: 15 }}>
-            {isLogin ? 'Sign In' : 'Create Account'}
+            {isResettingPassword ? 'Reset Password' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
-        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: 'var(--zen-muted)' }}>
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button 
-            type="button" 
-            onClick={() => { setIsLogin(!isLogin); setError(''); }} 
-            style={{ background: 'none', border: 'none', color: 'var(--zen-sage)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-          >
-            {isLogin ? 'Sign up' : 'Sign in'}
-          </button>
+        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: 'var(--zen-muted)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {isResettingPassword ? (
+            <button type="button" onClick={() => { setIsResettingPassword(false); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--zen-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+              ← Back to Sign In
+            </button>
+          ) : (
+            <div>
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <button 
+                type="button" 
+                onClick={() => { setIsLogin(!isLogin); setError(''); }} 
+                style={{ background: 'none', border: 'none', color: 'var(--zen-sage)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

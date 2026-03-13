@@ -1,5 +1,5 @@
 'use client';
-import { getCurrentUser, logoutUser, getProfiles, addProfile, deleteProfile, getRecords, Profile } from '@/lib/store';
+import { getCurrentUser, logoutUser, getProfiles, addProfile, deleteProfile, getRecords, deleteRecord, Profile } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -82,6 +82,13 @@ export default function DashboardPage() {
     if (updated[0].preferredLanguage) {
       setLanguage(updated[0].preferredLanguage as any);
     }
+  };
+
+  const handleDeleteRecord = (id: string) => {
+    if (!activeProfile) return;
+    deleteRecord(activeProfile.id, id);
+    setRecords(getRecords(activeProfile.id));
+    if (selectedRecord?.id === id) setSelectedRecord(null);
   };
 
   const handleSignOut = () => { logoutUser(); router.replace('/auth'); };
@@ -253,7 +260,12 @@ export default function DashboardPage() {
                       <span style={{ fontWeight: 600, color: 'var(--zen-dark)', fontSize: 14 }}>{r.hospitalName || 'Health Visit'}</span>
                       {r.doctorName && <span style={{ fontSize: 12, color: 'var(--zen-muted)', marginLeft: 8 }}>Dr. {r.doctorName}</span>}
                     </div>
-                    <span style={{ fontSize: 12, color: 'var(--zen-muted)' }}>{new Date(r.dateOfVisit).toLocaleDateString('en-IN')}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 12, color: 'var(--zen-muted)' }}>{new Date(r.dateOfVisit).toLocaleDateString('en-IN')}</span>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteRecord(r.id); }} style={{ background: 'rgba(196,145,122,0.1)', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--zen-rose)', fontSize: 12, transition: 'all 0.2s' }}
+                        onMouseOver={e => (e.currentTarget.style.background = 'rgba(196,145,122,0.2)')}
+                        onMouseOut={e => (e.currentTarget.style.background = 'rgba(196,145,122,0.1)')}>🗑️</button>
+                    </div>
                   </div>
                   <p style={{ fontSize: 13, color: 'var(--zen-dark)', lineHeight: 1.6 }}>{r.summary}</p>
                 </div>
@@ -265,10 +277,10 @@ export default function DashboardPage() {
         {/* Delete Account Modal Removed */}
       </main>
 
-      {/* Document Viewer Modal */}
-      {selectedRecord && selectedRecord.fileData && (
+      {/* Document Viewer Modal with OCR Details */}
+      {selectedRecord && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: 24 }}>
-          <div style={{ background: 'var(--zen-warm)', borderRadius: 20, width: '100%', maxWidth: 900, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <div style={{ background: 'var(--zen-warm)', borderRadius: 20, width: '100%', maxWidth: 1000, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--zen-sand)' }}>
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 600, color: 'var(--zen-dark)' }}>{selectedRecord.hospitalName || 'Health Document'}</h3>
@@ -276,12 +288,58 @@ export default function DashboardPage() {
               </div>
               <button onClick={() => setSelectedRecord(null)} style={{ background: 'none', border: 'none', fontSize: 28, color: 'var(--zen-muted)', cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
-            <div style={{ flex: 1, overflow: 'auto', background: '#eaf0ec', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-              {selectedRecord.fileData.startsWith('data:application/pdf') ? (
-                <iframe src={selectedRecord.fileData} style={{ width: '100%', height: '70vh', border: 'none', borderRadius: 8 }} />
-              ) : (
-                <img src={selectedRecord.fileData} alt="Document" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              )}
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'row' }}>
+              {/* Left Column: OCR Summary */}
+              <div style={{ width: '40%', minWidth: 320, borderRight: '1px solid var(--zen-sand)', overflowY: 'auto', padding: 20, background: 'rgba(253,252,249,0.5)' }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--zen-sage)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>Extracted Details</h4>
+                {selectedRecord.summary.split('\n').map((line, idx) => {
+                  const parts = line.split(':');
+                  if (parts.length < 2) return null;
+                  const key = parts[0].trim();
+                  const val = parts.slice(1).join(':').trim();
+                  if (!val || val === '—') return null;
+
+                  // Map to user-friendly titles and icons
+                  const map: Record<string, { icon: string, title: string, accent: string }> = {
+                    patientInfo: { icon: '🧑‍⚕️', title: 'Patient Info', accent: '#7c9a7e' },
+                    doctor: { icon: '👨‍⚕️', title: 'Doctor / Clinic', accent: '#8b7355' },
+                    chiefComplaint: { icon: '🤕', title: 'Chief Complaint', accent: '#c4917a' },
+                    diagnosis: { icon: '🩺', title: 'Diagnosis', accent: '#7c9a7e' },
+                    investigations: { icon: '🔬', title: 'Investigations', accent: '#9e9185' },
+                    advice: { icon: '💊', title: 'Advice / Rx', accent: '#7c9a7e' },
+                  };
+                  const meta = map[key] || { icon: '📄', title: key, accent: '#aaa' };
+
+                  return (
+                    <div key={idx} style={{ marginBottom: 16, background: 'white', borderRadius: 12, border: '1px solid var(--zen-sand)', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ height: 3, background: `linear-gradient(90deg, ${meta.accent}, ${meta.accent}88)` }} />
+                      <div style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontSize: 16 }}>{meta.icon}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: meta.accent, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{meta.title}</span>
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--zen-dark)', lineHeight: 1.6 }}>{val}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right Column: Original Image/PDF View */}
+              <div style={{ flex: 1, background: '#eaf0ec', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflow: 'auto' }}>
+                {selectedRecord.fileData ? (
+                  selectedRecord.fileData.startsWith('data:application/pdf') ? (
+                    <iframe src={selectedRecord.fileData} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }} />
+                  ) : (
+                    <img src={selectedRecord.fileData} alt="Document" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                  )
+                ) : (
+                  <div style={{ color: 'var(--zen-muted)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 10 }}>📄</div>
+                    <p>Document image not available for this record.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

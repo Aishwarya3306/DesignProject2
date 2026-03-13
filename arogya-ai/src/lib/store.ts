@@ -125,6 +125,12 @@ export function addRecord(profileId: string, record: Omit<HealthRecord, 'id' | '
   return r;
 }
 
+export function deleteRecord(profileId: string, recordId: string) {
+  let records = getRecords(profileId);
+  records = records.filter(r => r.id !== recordId);
+  localStorage.setItem(`arogya_records_${profileId}`, JSON.stringify(records));
+}
+
 // ---- JOURNAL ----
 const JOURNAL_PIN_KEY = (userId: string) => `arogya_journal_pin_${userId}`;
 const JOURNAL_KEY = (userId: string) => `arogya_journal_${userId}`;

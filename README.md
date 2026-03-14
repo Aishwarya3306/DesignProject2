@@ -19,7 +19,6 @@ Backend
 - FastAPI
 AI
 - Llama3 model (via Groq API)
-OCR
 - Tesseract.js
 ## Running the Project
 1. Clone the repository
